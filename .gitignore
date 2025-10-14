@@ -1,0 +1,13 @@
+# 虚拟环境文件夹
+.venv/
+venv/
+
+# 包含API密钥的环境变量文件 (!!!极其重要!!!)
+.env
+
+# Python 缓存文件
+__pycache__/
+*.pyc
+
+# IDE 配置文件 (例如 VSCode)
+.vscode/

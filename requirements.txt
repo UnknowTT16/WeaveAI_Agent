@@ -1,0 +1,14 @@
+streamlit
+pandas
+numpy
+stqdm
+scikit-learn
+tensorflow
+vaderSentiment
+wordcloud
+matplotlib
+plotly
+pyarrow
+python-dotenv
+volcengine-python-sdk[ark]
+python-docx

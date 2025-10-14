@@ -1,0 +1,12 @@
+GitHub提交流程：
+git add .
+git commit -m "Update project files"
+git push
+GitHub拉回本地:
+git pull
+
+app运行指令:
+streamlit run app.py
+
+ngrok本地服务器部署指令：
+ngrok.exe http 8501
