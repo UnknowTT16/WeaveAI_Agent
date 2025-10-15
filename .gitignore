@@ -11,3 +11,6 @@ __pycache__/
 
 # IDE 配置文件 (例如 VSCode)
 .vscode/
+# 忽略特定的测试或数据文件
+XX智能家居跨境电商企业产品介绍.docx
+杂项说明文档.txt
