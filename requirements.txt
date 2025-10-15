@@ -5,7 +5,7 @@ pandas
 numpy
 stqdm
 scikit-learn
-tensorflow
+tensorflow-cpu==2.15.0  
 vaderSentiment
 python-docx
 plotly
