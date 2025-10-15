@@ -42,7 +42,7 @@ import plotly.express as px
 # 2. 配置与辅助函数
 # ==============================================================================
 
-def generate_market_report(ark_client, target_market):
+def generate_market_report(ark_client, target_market, use_web_search):
     """
     第一轮：AI 市场分析模块
     """
@@ -50,7 +50,6 @@ def generate_market_report(ark_client, target_market):
     你是一位资深的跨境电商市场分析师与选品专家。
     你的核心任务是根据用户指定的国家或地区，利用你的知识和网络搜索能力，生成一份专业、详尽、且具有前瞻性的选品分析报告。
     报告必须使用Markdown格式，结构清晰，包含标题、列表和加粗等元素。
-
     报告必须遵循以下结构和要求：
     ## 一、 市场机遇概要
     - 总结核心机遇，直接点出2-3个推荐产品大类。
@@ -64,24 +63,29 @@ def generate_market_report(ark_client, target_market):
     - 客观指出物流、支付、竞争等风险。
     ## 四、 总结与最终建议
     - 总结报告，给出明确的行动建议。
-
     你必须调用`web_search`工具确保数据最新。报告语言应专业、客观。
     """
     user_input = f"请为我生成一份关于'{target_market}'市场的跨境电商选品分析报告。"
+    
+    request_params = {
+        "model": "doubao-seed-1-6-250615",
+        "input": [{"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
+                  {"role": "user", "content": [{"type": "input_text", "text": user_input}]}],
+        "stream": True,
+        "extra_body": {"thinking": {"type": "auto"}},
+    }
+    if use_web_search:
+        request_params["tools"] = [{"type": "web_search", "limit": 10}]
+
     try:
-        response = ark_client.responses.create(
-            model="doubao-seed-1-6-250615",
-            input=[{"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
-                   {"role": "user", "content": [{"type": "input_text", "text": user_input}]}],
-            tools=[{"type": "web_search", "limit": 10}], stream=True, extra_body={"thinking": {"type": "auto"}},
-        )
+        response = ark_client.responses.create(**request_params)
         for chunk in response:
             delta_content = getattr(chunk, 'delta', None)
             if isinstance(delta_content, str): yield delta_content
     except Exception as e:
         yield f"\n\n❌ **AI Agent请求失败:**\n\n`{str(e)}`"
 
-def generate_improvement_suggestions(ark_client, market_report, product_description):
+def generate_improvement_suggestions(ark_client, market_report, product_description, use_web_search):
     """
     第二轮：AI 产品改进建议模块
     """
@@ -90,29 +94,45 @@ def generate_improvement_suggestions(ark_client, market_report, product_descript
     你的任务是深入分析一份已有的市场报告和一份用户提供的产品描述，然后结合最新的网络搜索信息，为该产品进入目标市场提供一份专业、具体、可执行的改进建议报告。
     报告必须使用Markdown格式，并严格遵循以下结构：
     ### 📝 产品核心特性总结
-    - ... (内容省略)
+    - 首先，用一两句话总结你理解的这款产品的核心功能和目标用户。
     ### 🚀 市场机遇结合点 (Opportunities)
-    - ... (内容省略)
+    - 明确指出这款产品与市场报告中提到的哪些 **机遇** 和 **文化消费习惯** 高度契合，这是产品的核心优势。
     ### ⚠️ 潜在风险与挑战 (Challenges)
-    - ... (内容省略)
+    - 明确指出这款产品可能会触碰到市场报告中提到的哪些 **风险**、**法律法规** 或 **认证要求**，这是需要优先解决的问题。
     ### 💡 具体改进建议 (Actionable Suggestions)
-    - ... (内容省略)
+    - 这是报告的核心。提供一个包含具体建议的列表，至少覆盖以下3-4个方面：
+        - **功能与设计调整**: 建议对产品的颜色、尺寸、功能点、包装设计等进行哪些调整以更符合当地审美和使用习惯。
+        - **营销语言与卖点提炼**: 建议在产品详情页和广告中使用哪些关键词和营销角度，以精准触达当地消费者。
+        - **定价与服务策略**: 建议一个初步的定价区间，并指出是否需要提供特殊的支付方式（如COD）或售后服务。
+        - **合规性检查**: 提醒用户需要检查或获取哪些具体的认证或许可以及早准备。
     """
     
     user_input = f"""
-    这是我之前生成的市场分析报告：...{market_report}...
-    这是我的产品介绍：...{product_description}...
-    请为我的产品生成一份详细的本地化改进建议报告。
+    这是我之前生成的市场分析报告：
+    --- [市场报告开始] ---
+    {market_report}
+    --- [市场报告结束] ---
+
+    这是我的产品介绍：
+    --- [产品介绍开始] ---
+    {product_description}
+    --- [产品介绍结束] ---
+
+    请根据以上信息，为我的产品生成一份详细的本地化改进建议报告。
     """
+
+    request_params = {
+        "model": "doubao-seed-1-6-250615",
+        "input": [{"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
+                  {"role": "user", "content": [{"type": "input_text", "text": user_input}]}],
+        "stream": True,
+        "extra_body": {"thinking": {"type": "auto"}},
+    }
+    if use_web_search:
+        request_params["tools"] = [{"type": "web_search", "limit": 5}]
+
     try:
-        response = ark_client.responses.create(
-            model="doubao-seed-1-6-250615",
-            input=[
-                {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
-                {"role": "user", "content": [{"type": "input_text", "text": user_input}]}
-            ],
-            tools=[{"type": "web_search", "limit": 5}], stream=True, extra_body={"thinking": {"type": "auto"}},
-        )
+        response = ark_client.responses.create(**request_params)
         for chunk in response:
             delta_content = getattr(chunk, 'delta', None)
             if isinstance(delta_content, str): yield delta_content
@@ -126,47 +146,43 @@ def generate_review_summary_report(ark_client, positive_reviews_sample, negative
     system_prompt = """
     你是一位高级用户洞察分析师，专注于从大量用户评论中提炼核心观点和商业洞见。
     你的任务是分析给你的正面和负面评论样本，并生成一份简洁、深刻、结构化的分析报告。
-
     报告必须使用Markdown格式，并严格遵循以下结构：
-
     ### 📝 评论总体情绪概述
     - 用一两句话，基于你看到的评论，总结产品的整体市场反响和用户情绪。
-
     ### 👍 产品核心优势 (从正面评论中提炼)
     - 使用列表形式，总结出用户最常称赞的2-3个核心优点。
     - 每一个优点后面，用括号引用一句最能代表该观点的 **原始评论**。
-
     ### 👎 产品主要痛点 (从负面评论中提炼)
     - 使用列表形式，总结出用户抱怨最多的2-3个核心问题或缺点。
     - 每一个痛点后面，用括号引用一句最能代表该观点的 **原始评论**。
-
     ### 💡 可执行的改进建议 (Actionable Suggestions)
     - 基于以上分析，为产品经理或运营团队提供2-3条具体的、可执行的改进建议。
     """
     
     user_input = f"""
     以下是关于某款产品的用户评论样本。
-
     --- [正面评论样本] ---
     {positive_reviews_sample}
     --- [正面评论样本结束] ---
-
     --- [负面评论样本] ---
     {negative_reviews_sample}
     --- [负面评论样本结束] ---
-
     请根据以上评论，为我生成一份用户洞察分析报告。
     """
+
+    # --- 【代码风格统一修正】 ---
+    request_params = {
+        "model": "doubao-seed-1-6-250615",
+        "input": [
+            {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
+            {"role": "user", "content": [{"type": "input_text", "text": user_input}]}
+        ],
+        "stream": True,
+        "extra_body": {"thinking": {"type": "auto"}},
+    }
+
     try:
-        response = ark_client.responses.create(
-            model="doubao-seed-1-6-250615",
-            input=[
-                {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
-                {"role": "user", "content": [{"type": "input_text", "text": user_input}]}
-            ],
-            stream=True,
-            extra_body={"thinking": {"type": "auto"}},
-        )
+        response = ark_client.responses.create(**request_params)
         for chunk in response:
             delta_content = getattr(chunk, 'delta', None)
             if isinstance(delta_content, str):
@@ -260,7 +276,9 @@ def create_category_sales_plot(_df):
 # ==============================================================================
 # 3. Streamlit 用户界面布局
 # ==============================================================================
-st.set_page_config(layout="wide"); st.title('📈 跨境电商智能分析平台')
+st.set_page_config(layout="wide"); st.title('📈 WeaveAI智能分析助手')
+st.caption('##### 还在凭感觉选品？让数据与AI为您引航')
+
 with st.sidebar:
     st.header("📂 上传您的数据"); st.info("推荐您将大的CSV文件转换为Parquet格式以提升速度。")
     uploaded_amazon = st.file_uploader('1. 上传 Amazon 销售报告', type=['csv', 'parquet'])
@@ -273,8 +291,13 @@ tabs = ["🤖 AI 市场选品顾问", "🧠 LSTM销售预测", "🛍️ 品类�
 tab_agent, tab_lstm, tab_category, tab_cluster, tab_sentiment = st.tabs(tabs)
 
 with tab_agent:
-    st.header("第一轮：AI 市场选品顾问"); st.markdown("基于豆包大模型的`Web Search`能力，为您提供富有洞察力的新市场选品策略。")
-    target_market = st.text_input("输入您想分析的目标国家或地区", placeholder="例如：德国、东南亚、巴西")
+    st.header("第一轮：AI 市场选品顾问"); 
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        target_market = st.text_input("输入您想分析的目标国家或地区", placeholder="例如：德国、东南亚、巴西")
+    with col2:
+        use_weaveai_db = st.toggle("调用'WeaveAI'实时数据库", value=True, help="开启后，AI将使用实时更新的最新数据库以提供更具时效性的分析。关闭则仅依赖模型自身知识。")
+
     if st.button("生成分析报告", key="generate_report"):
         st.session_state.report_generated = False; st.session_state.market_report_content = ""
         api_key_from_env = os.environ.get("ARK_API_KEY")
@@ -286,7 +309,7 @@ with tab_agent:
             full_response_text = ""; separator_pattern = re.compile(r"\n#+ ")
             try:
                 ark_client = Ark(api_key=api_key_from_env)
-                for chunk in generate_market_report(ark_client, target_market):
+                for chunk in generate_market_report(ark_client, target_market, use_weaveai_db):
                     full_response_text += chunk; match = separator_pattern.search(full_response_text)
                     if match:
                         thinking_part = full_response_text[:match.start()]; report_part = full_response_text[match.start():]
@@ -321,7 +344,7 @@ with tab_agent:
                             sugg_full_response_text = ""; sugg_separator_pattern = re.compile(r"\n#+ ")
                             try:
                                 ark_client = Ark(api_key=api_key_from_env)
-                                for chunk in generate_improvement_suggestions(ark_client, st.session_state.market_report_content, product_description):
+                                for chunk in generate_improvement_suggestions(ark_client, st.session_state.market_report_content, product_description, use_weaveai_db):
                                     sugg_full_response_text += chunk; sugg_match = sugg_separator_pattern.search(sugg_full_response_text)
                                     if sugg_match:
                                         sugg_thinking_part = sugg_full_response_text[:sugg_match.start()]; sugg_report_part = sugg_full_response_text[sugg_match.start():]
