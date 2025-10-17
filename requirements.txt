@@ -1,0 +1,15 @@
+--find-links https://pkgs.dev.azure.com/db-build/public/_packaging/onnxruntime-training/pypi/simple/
+
+streamlit
+pandas
+numpy
+stqdm
+scikit-learn
+tensorflow-cpu==2.15.0  
+vaderSentiment
+python-docx
+plotly
+pyarrow
+python-dotenv
+volcengine-python-sdk[ark]
+onnxruntime-training
